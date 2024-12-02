@@ -1,0 +1,4 @@
+name: aoc24
+dependencies:
+  - numpy
+  - pandas
