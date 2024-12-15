@@ -31,6 +31,7 @@ def do_op(op, num1, num2):
 
 
 def brute_force(test_val, nums, part=1):
+    # takes about 15s for part 2
     op_cases = list(itertools.product(np.arange(part+1), repeat=len(nums)-1))
     for case in op_cases:
         out = nums[0]
