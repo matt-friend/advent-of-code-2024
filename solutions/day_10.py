@@ -48,7 +48,7 @@ def pathfind(node, coords, map, mapsize):
         n = Node(coordstr(c), parent=node)
         n = pathfind(n, c, map, mapsize)
     return node
-
+    
 
 def get_valid_paths(start_coords, map, mapsize, distinct):
     # recursive path search
