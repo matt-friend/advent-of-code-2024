@@ -86,11 +86,6 @@ def find_leftmost_gap_for_size(actual_data, start_pntr, filesize):
     largest_gap_pntr = 0
 
     while largest_gap_size < filesize and dd_pntr < len(actual_data):
-        # print(f"dd_pntr: {dd_pntr}")
-        # print(f"current_gap_size: {current_gap_size}")
-        # print(f"largest_gap_size: {largest_gap_size}")
-        # print(actual_data[dd_pntr])
-
         if actual_data[dd_pntr] == '.':
             current_gap_size += 1
         else:
@@ -108,13 +103,12 @@ def find_leftmost_gap_for_size(actual_data, start_pntr, filesize):
 
 def update_gap_table(actual_data, gap_pntrs, fsize):
     # need to recalc all gaps smaller than size of gap fsize just inhabited (if necessary)
-
     changed_gap_pntr = gap_pntrs[fsize-1]
     gap_size_changed = max([x for x in range(len(gap_pntrs)) if gap_pntrs[x] == changed_gap_pntr]) + 1
     
     gap_pntr_idx = 0
     while gap_pntr_idx < gap_size_changed:
-        # gap pntrs for gap <= gap_size_changed need to be re-searched if not already reassigned in prev loop
+        # gap pntrs for gap <= gap_size_changed need to be re-searched
         if gap_pntrs[gap_pntr_idx] == changed_gap_pntr:
             # find next available gap for file size
             gap_size, gap_pntr = find_leftmost_gap_for_size(actual_data, gap_pntrs[gap_pntr_idx], gap_pntr_idx+1)
@@ -141,12 +135,7 @@ def sumcheck(data):
 
 
 def part_2(file):
-    # x = '000000000877666...111111115555....222222244444..333333...................................'
-    # checksum = 0
-    # for i, el in enumerate(x):
-    #     if el != '.':
-    #         checksum += i * int(el)
-    # return checksum
+    # Horrendously slow (> 1min runtime)
     with open(file, 'r') as file:
         disk_map = file.read().replace('\n', '')
         disk_map = list(map(int, disk_map))
@@ -161,8 +150,9 @@ def part_2(file):
             else:
                 actual_data.extend(['.']*el)
         
-        with open("day_9_actual_data_input.txt", "w") as txt_file:
-            txt_file.write(",".join([str(x) for x in actual_data]))
+        # writing to file for testing
+        # with open("outputs/day_9_actual_data_input.txt", "w") as txt_file:
+        #     txt_file.write(",".join([str(x) for x in actual_data]))
 
         # my own checksum (to check no data is missing at end of data shuffle)
         start_check = sumcheck(actual_data)
@@ -171,9 +161,6 @@ def part_2(file):
         disk_data_fwd_gap_pntrs = init_gap_table(disk_map)
 
         for disk_map_bkwd_pntr in range(len(disk_map) - 1, -1, -1):
-            if disk_map_bkwd_pntr == 10536:
-                print("here")
-            #print(disk_map_bkwd_pntr)
             val = disk_map[disk_map_bkwd_pntr]
             # if gap, move to next file
             if disk_map_bkwd_pntr % 2 != 0:
@@ -201,15 +188,15 @@ def part_2(file):
                 print(f"Sumcheck not matching, value is {c} at pntr {disk_map_bkwd_pntr}")
                 break
         
-        with open("day_9_actual_data_output.txt", "w") as txt_file:
-            txt_file.write(",".join([str(x) for x in actual_data]))
+        # writing to output for testing
+        # with open("outputs/day_9_actual_data_output.txt", "w") as txt_file:
+        #     txt_file.write(",".join([str(x) for x in actual_data]))
 
-        endcheck = 0
-        for i in actual_data:
-            if i != '.':
-                endcheck += int(i)
-        print(start_check, endcheck)
-
+        # endcheck = 0
+        # for i in actual_data:
+        #     if i != '.':
+        #         endcheck += int(i)
+        # print(start_check, endcheck)
 
         checksum = 0
         for i, el in enumerate(actual_data):
@@ -218,9 +205,9 @@ def part_2(file):
         return checksum
 
 
-# test_part_1()
-# test_part_2a()
+test_part_1()
+test_part_2a()
 test_part_2b()
 
-# print(part_1("data/day_9_input.txt"))
+print(part_1("data/day_9_input.txt"))
 print(part_2("data/day_9_input.txt"))

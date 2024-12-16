@@ -2,3 +2,4 @@ name: aoc24
 dependencies:
   - numpy
   - pandas
+  - conda-forge::anytree
