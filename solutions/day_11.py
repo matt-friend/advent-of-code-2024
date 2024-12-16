@@ -47,27 +47,27 @@ def part_1(file):
 
 def update_stones_dict(stones):
     new_stones = stones.copy()
-    for key in stones.keys():
+    for key, val in stones.items():
+        stones[key] -= val
+        new_stones[key] -= val
         l = len(str(key))
-        while stones[key] > 0:
-            stones[key] -= 1
-            new_stones[key] -= 1
-            if key == 0:
-                new_stones[1] += 1
-            elif l % 2 == 0:
-                key_l = int(str(key)[:int(l/2)])
-                key_r = int(str(key)[int(l/2):])
-                new_stones[key_l] += 1
-                new_stones[key_r] += 1
-            else:
-                new_stones[key*2024] += 1
+        if key == 0:
+            new_stones[1] += val
+        elif l % 2 == 0:
+            key_l = int(str(key)[:int(l/2)])
+            key_r = int(str(key)[int(l/2):])
+            new_stones[key_l] += val
+            new_stones[key_r] += val
+        else:
+            new_stones[key*2024] += val
     return new_stones
 
 
 def part_2(file):
     stones = np.genfromtxt(file, dtype=int)
     # generation of stones over 75 steps would break pc, need compressed representation
-    # LMAOO this is >100x faster to execute for part 1 (25 steps)
+    # LMAOO this is >100x faster to execute for 25 steps
+    # More optimisation is >500x faster for 25 steps
     t = time.time()
     stones_dict = {}
     stones_dict = defaultdict(lambda: 0, stones_dict)
@@ -75,6 +75,7 @@ def part_2(file):
         stones_dict[s] = 1
     for i in range(75):
         stones_dict = update_stones_dict(stones_dict)
+        print(f"Step {i+1}: {sum(stones_dict.values())} stones")
     print(f"Part 2 time: {time.time() - t}")
     return sum(stones_dict.values())
 
