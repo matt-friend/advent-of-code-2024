@@ -3,10 +3,11 @@ from anytree import Node, LevelOrderIter, RenderTree, AsciiStyle
 import csv
 from collections import defaultdict
 import sys
+import time
 
 print(sys.getrecursionlimit())
 
-sys.setrecursionlimit(3000)
+sys.setrecursionlimit(2000)
 
 
 MOVE_MAP = {
@@ -93,17 +94,20 @@ def pathfind(node, coords, current_direction, map, mapsize):
         # print(new_node_name, current_path)
         if new_node_name not in current_path:
             if is_end(new_coords, map):
-                n = Node(new_node_name, parent=node, cost=cost, end=True)
+                n = Node(new_node_name, parent=node, cost=cost, cheapest_path=cost, end=True)
+                if cost < node.cheapest_path:
+                    node.cheapest_path = cost
             else:
-                n = Node(new_node_name, parent=node, cost=cost, end=False)
-                n = pathfind(n, new_coords, new_direction, map, mapsize)
+                if cost < node.cheapest_path:
+                    n = Node(new_node_name, parent=node, cost=cost, cheapest_path=node.cheapest_path, end=False)
+                    n = pathfind(n, new_coords, new_direction, map, mapsize)
     return node
     
 
 def generate_paths(start_coords, map, mapsize):
     start_direction = '>'
     # recursive path search
-    paths = Node(coordstr(start_coords), cost = 0, end=False)
+    paths = Node(coordstr(start_coords), cost = 0, cheapest_path = 1e10, end=False)
     paths = pathfind(paths, start_coords, start_direction, map, mapsize)
     # print(f"New tree generated, type {plot_type}:\n {RenderTree(plot, style=AsciiStyle()).by_attr()}")
     return paths
@@ -157,7 +161,12 @@ def part_1(file):
 
         reindeer_pos = find_reindeer(map)
 
+        t = time.time()
+
         paths = generate_paths(reindeer_pos, map, len(map))
+
+        print(f"Time taken to generate paths: {time.time() - t}")
+        print(f"Distinct paths found: {len([n.cost for n in LevelOrderIter(paths) if n.end == True])}")
 
         return get_cheapest_path_cost(paths)
 
