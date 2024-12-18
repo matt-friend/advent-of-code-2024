@@ -1,7 +1,5 @@
 import numpy as np
-from anytree import Node, LevelOrderIter, RenderTree, AsciiStyle
 import csv
-from collections import defaultdict
 import re
 import math
 
