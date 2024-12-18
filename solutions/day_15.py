@@ -209,46 +209,7 @@ def get_wide_box_interaction_chains_2(interaction_dict, this_chain, this_half_po
             return interaction_dict, False      
     
     return interaction_dict, True
-    
 
-def get_wide_box_interaction_chains(interaction_dict, this_chain, this_half_pos, map, direction):
-    # append current position to chain
-    this_chain.append(this_half_pos)
-
-    # if new chain, create key in interaction_dict as sign visited
-    if len(this_chain) == 1:
-        interaction_dict[coordstr(this_half_pos)] = [this_half_pos]
-    else:
-        interaction_dict[coordstr(this_chain[0])].append(this_half_pos)
-
-    # if box, continue chain and initiate chain for other box half
-    if is_box(this_half_pos, map):
-
-        # get other half
-        that_half_pos = get_other_box_coords(this_half_pos, map)
-        sister_can_move = True
-        
-        # only inititate sister chain if not visited
-        if not is_visited(that_half_pos, interaction_dict):
-
-            # initiate that chain (if not already in a chain)
-            # if not is_visited(that_half_pos, interaction_dict):
-            interaction_dict, sister_can_move = get_wide_box_interaction_chains(interaction_dict, [], that_half_pos, map, direction)
-        
-        # continue this chain
-        next_chain_pos = this_half_pos + direction
-        interaction_dict, can_move = get_wide_box_interaction_chains(interaction_dict, this_chain, next_chain_pos, map, direction)
-        
-        return interaction_dict, can_move and sister_can_move
-        
-    # if wall, end of the line
-    elif is_wall(this_half_pos, map):
-        return interaction_dict, False
-    # if empty, moving box chain still possible
-    else:
-        # interaction_dict[coordstr(this_chain[0])] = this_chain
-        return interaction_dict, True
-    
 
 def wide_box_interaction(old_pos, new_pos, map, move):
     direction_to_check = MOVE_MAP[move]
@@ -312,6 +273,7 @@ def check_all_boxes_valid(map):
 
 
 def part_2(file):
+    # this took way too long
     with open(file, 'r') as file:
         reader = csv.reader(file)
         map = []
@@ -350,14 +312,12 @@ def part_2(file):
 
         for idx, move in enumerate(instructions):   
             # print(idx)
-            if idx == 1608:
-                print("break")
-            last_map = map.copy()         
+            # last_map = map.copy()         
             r_pos, map = do_move_2(r_pos, map, move)
-            if not check_all_boxes_valid(map):
-                print_map(last_map)
-                print(idx, move)
-                break
+            # if not check_all_boxes_valid(map):
+            #     print_map(last_map)
+            #     print(idx, move)
+            #     break
 
         print_map(map)
 
