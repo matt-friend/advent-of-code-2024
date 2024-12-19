@@ -31,32 +31,17 @@ def test_part_1():
         print(f"Part 1 failed test case (b), returned {ans}")
 
 
-# def test_part_2():
-#     ans = part_2("test_cases/day_12_test_a.txt")
-#     if ans == 80:
-#         print("Part 2 test case (a) success!")
-#     else:
-#         print(f"Part 2 failed test case (a), returned {ans}")
-#     ans = part_2("test_cases/day_12_test_b.txt")
-#     if ans == 436:
-#         print("Part 2 test case (b) success!")
-#     else:
-#         print(f"Part 2 failed test case (b), returned {ans}")
-#     ans = part_2("test_cases/day_12_test_c.txt")
-#     if ans == 1206:
-#         print("Part 2 test case (c) success!")
-#     else:
-#         print(f"Part 2 failed test case (c), returned {ans}")
-#     ans = part_2("test_cases/day_12_test_d.txt")
-#     if ans == 236:
-#         print("Part 2 test case (d) success!")
-#     else:
-#         print(f"Part 2 failed test case (d), returned {ans}")
-#     ans = part_2("test_cases/day_12_test_e.txt")
-#     if ans == 368:
-#         print("Part 2 test case (e) success!")
-#     else:
-#         print(f"Part 2 failed test case (e), returned {ans}")
+def test_part_2():
+    ans = part_2("test_cases/day_16_test_a.txt")
+    if ans == 45:
+        print("Part 2 test case (a) success!")
+    else:
+        print(f"Part 2 failed test case (a), returned {ans}")
+    ans = part_2("test_cases/day_16_test_b.txt")
+    if ans == 64:
+        print("Part 2 test case (b) success!")
+    else:
+        print(f"Part 2 failed test case (b), returned {ans}")
 
 
 def is_wall(pos, map):
@@ -79,43 +64,6 @@ def next_moves(coords, direction, map):
         else:
             next_moves[m] = new_coords
     return next_moves
-
-
-def pathfind(node, coords, current_direction, map, mapsize, cheapest_path):
-    nm = next_moves(coords, current_direction, map)
-    map[coords[0]][coords[1]] = current_direction
-    for new_direction, new_coords in nm.items():
-        cost = node.cost + 1
-        if new_direction != current_direction:
-            cost += 1000
-        # check if new coords not already in path from root
-        new_node_name = coordstr(new_coords)
-        current_path = [n.name for n in list(node.path)]
-        # print(new_node_name, current_path)
-        if new_node_name not in current_path and len(current_path) < 2500:
-            if is_end(new_coords, map):
-                n = Node(new_node_name, parent=node, cost=cost, end=True)
-                if cost < cheapest_path:
-                    cheapest_path = cost
-                    print(cheapest_path)
-            else:
-                if cost < cheapest_path:
-                    n = Node(new_node_name, parent=node, cost=cost, end=False)
-                    n, new_cheapest_path = pathfind(n, new_coords, new_direction, map, mapsize, cheapest_path)
-                    if new_cheapest_path < cheapest_path:
-                        cheapest_path = new_cheapest_path
-                        print(cheapest_path)
-    return node, cheapest_path
-    
-
-def generate_paths(start_coords, map, mapsize):
-    start_direction = '>'
-    cheapest_path = 1e7
-    # recursive path search
-    paths = Node(coordstr(start_coords), cost = 0, end=False)
-    paths, cheapest_path = pathfind(paths, start_coords, start_direction, map, mapsize, cheapest_path)
-    # print(f"New tree generated, type {plot_type}:\n {RenderTree(plot, style=AsciiStyle()).by_attr()}")
-    return paths
 
 
 def create_adjacency_dict(map):
@@ -145,10 +93,8 @@ def djikstra(map, start_pos):
     unvisited = {}
     for pos in adjacency_dict.keys():
         dist[pos] = np.inf
-        prev[pos] = -1
+        prev[pos] = []
         unvisited[pos] = True
-
-    print(adjacency_dict['139001>'])
     
     dist[start] = 0
 
@@ -161,15 +107,17 @@ def djikstra(map, start_pos):
         neighbours = adjacency_dict[current_node]
         for n in [v for v in neighbours if v[0] in unvisited]:
             temp_dist = dist[current_node] + n[1]
+            # added this to account for multiple paths of same cost
+            if temp_dist == dist[n[0]]:
+                prev[n[0]].append(current_node)
             if temp_dist < dist[n[0]]:
                 dist[n[0]] = temp_dist
-                prev[n[0]] = current_node
+                prev[n[0]] = [current_node]
 
     return dist, prev
 
 
 def coordstr(coords):
-    # IMPORTANT that this uses 3, was 2 before and caused failure due to coord lookup issues
     return str(coords[0]).zfill(3)+str(coords[1]).zfill(3)
 
 
@@ -183,6 +131,7 @@ def find_reindeer(map):
         for x in range(len(map[0])):
             if map[y][x] == 'S':
                 return [y, x]
+            
             
 def find_end(map):
     for y in range(len(map)):
@@ -226,8 +175,6 @@ def part_1(file):
 
         t = time.time()
 
-        # paths = generate_paths(reindeer_pos, map, len(map))
-
         cost, _ = djikstra(map, reindeer_pos)
         end = find_end(map)
         min_cost = np.inf
@@ -236,19 +183,92 @@ def part_1(file):
             if cost[c] < min_cost:
                 min_cost = cost[c]
 
-        print(f"Time taken to generate paths: {time.time() - t}")
-        # print(f"Distinct paths found: {len([n.cost for n in LevelOrderIter(paths) if n.end == True])}")
+        print(f"Time taken for search: {time.time() - t}")
 
         return min_cost
+    
 
+def is_start(pos, map):
+    return map[pos[0]][pos[1]] == 'S'
+
+
+def get_next_els(prevs, cost, coord, map):
+    path_els = [coord]
+    if is_start(coord_from_coordstr(coord[:-1]), map):
+        return path_els
+    for el in prevs[coord]:
+        path_els.extend(get_next_els(prevs, cost, el, map))
+    return path_els
+
+
+def find_path_els(prevs, cost, end_coord, map):
+    print(prevs[end_coord])
+    on_path = [end_coord]
+    for el in prevs[end_coord]:
+        on_path.extend(get_next_els(prevs, cost, el, map))
+    return on_path
 
 
 def part_2(file):
-    pass
+    with open(file, 'r') as file:
+        reader = csv.reader(file)
+        map = []
+        instructions = ""
+        mapdone = False
+        for row in reader:
+            if not row:
+                mapdone = True
+                continue
+            if mapdone:
+                instructions =  instructions + row[0]
+            else:
+                map.extend(row)
+      
+        map = np.array([list(r) for r in map])
+        
+        print(map.shape)
+        print_map(map)
+
+        reindeer_pos = find_reindeer(map)
+        print(reindeer_pos)
+
+        t = time.time()
+
+        cost, prevs = djikstra(map, reindeer_pos)
+        end = find_end(map)
+        end_pos = []
+
+        min_cost = np.inf
+        for d in MOVE_MAP.keys():
+            c = coordstr(end) + d
+            if cost[c] <= min_cost:
+                min_cost = cost[c]
+
+        for d in MOVE_MAP.keys():
+            c = coordstr(end) + d
+            if cost[c] == min_cost:
+                end_pos.append(c)
+
+        on_min_path = []
+        for pos in end_pos:
+            on_path = find_path_els(prevs, cost, pos, map)
+            on_min_path.extend(on_path)
+
+        on_min_path = set([x[:-1] for x in on_min_path])
+
+        for el in on_min_path:
+            c = coord_from_coordstr(el)
+            map[c[0]][c[1]] = '0'
+        
+        print_map(map)
+        print(f"Time taken for search: {time.time() - t}")
+
+        return len(on_min_path)
 
 
 test_part_1()
-# test_part_2()
+test_part_2()
 
+# part 1/2 takes ~5m to run for my laptop
 print(part_1("data/day_16_input.txt"))
-# print(part_2("data/day_16_input.txt"))
+print(part_2("data/day_16_input.txt"))
