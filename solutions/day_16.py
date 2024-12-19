@@ -5,9 +5,9 @@ from collections import defaultdict
 import sys
 import time
 
-print(sys.getrecursionlimit())
+# print(sys.getrecursionlimit())
 
-sys.setrecursionlimit(2000)
+# sys.setrecursionlimit(2501)
 
 
 MOVE_MAP = {
@@ -81,7 +81,7 @@ def next_moves(coords, direction, map):
     return next_moves
 
 
-def pathfind(node, coords, current_direction, map, mapsize):
+def pathfind(node, coords, current_direction, map, mapsize, cheapest_path):
     nm = next_moves(coords, current_direction, map)
     map[coords[0]][coords[1]] = current_direction
     for new_direction, new_coords in nm.items():
@@ -92,25 +92,80 @@ def pathfind(node, coords, current_direction, map, mapsize):
         new_node_name = coordstr(new_coords)
         current_path = [n.name for n in list(node.path)]
         # print(new_node_name, current_path)
-        if new_node_name not in current_path:
+        if new_node_name not in current_path and len(current_path) < 2500:
             if is_end(new_coords, map):
-                n = Node(new_node_name, parent=node, cost=cost, cheapest_path=cost, end=True)
-                if cost < node.cheapest_path:
-                    node.cheapest_path = cost
+                n = Node(new_node_name, parent=node, cost=cost, end=True)
+                if cost < cheapest_path:
+                    cheapest_path = cost
+                    print(cheapest_path)
             else:
-                if cost < node.cheapest_path:
-                    n = Node(new_node_name, parent=node, cost=cost, cheapest_path=node.cheapest_path, end=False)
-                    n = pathfind(n, new_coords, new_direction, map, mapsize)
-    return node
+                if cost < cheapest_path:
+                    n = Node(new_node_name, parent=node, cost=cost, end=False)
+                    n, new_cheapest_path = pathfind(n, new_coords, new_direction, map, mapsize, cheapest_path)
+                    if new_cheapest_path < cheapest_path:
+                        cheapest_path = new_cheapest_path
+                        print(cheapest_path)
+    return node, cheapest_path
     
 
 def generate_paths(start_coords, map, mapsize):
     start_direction = '>'
+    cheapest_path = 1e7
     # recursive path search
-    paths = Node(coordstr(start_coords), cost = 0, cheapest_path = 1e10, end=False)
-    paths = pathfind(paths, start_coords, start_direction, map, mapsize)
+    paths = Node(coordstr(start_coords), cost = 0, end=False)
+    paths, cheapest_path = pathfind(paths, start_coords, start_direction, map, mapsize, cheapest_path)
     # print(f"New tree generated, type {plot_type}:\n {RenderTree(plot, style=AsciiStyle()).by_attr()}")
     return paths
+
+
+def create_adjacency_dict(map):
+    adjacency_dict = defaultdict(list)
+    directions = MOVE_MAP.keys()
+    for i in range(1, len(map)-1):
+        for j in range(1, len(map)-1):
+            if is_wall([i,j], map):
+                continue
+            for d in directions:
+                key = coordstr([i,j]) + d
+                nm = next_moves([i,j], d, map)
+                for m, nc in nm.items():
+                    cost = 1
+                    if m != d:
+                        cost += 1000
+                    next_key = coordstr(nc) + m
+                    adjacency_dict[key].append((next_key ,cost))
+    return adjacency_dict
+                    
+
+def djikstra(map, start_pos):
+    adjacency_dict = create_adjacency_dict(map)
+    start = coordstr(start_pos) + '>'
+    dist = {}
+    prev = {}
+    unvisited = {}
+    for pos in adjacency_dict.keys():
+        dist[pos] = np.inf
+        prev[pos] = -1
+        unvisited[pos] = True
+
+    print(adjacency_dict['139001>'])
+    
+    dist[start] = 0
+
+    while len(unvisited) > 0:
+        unvisited_dist = dict((pos, dist[pos]) for pos in unvisited.keys())
+        current_node = sorted(unvisited_dist.items(), key=lambda kv: kv[1])[0][0]
+        
+        del unvisited[current_node]
+
+        neighbours = adjacency_dict[current_node]
+        for n in [v for v in neighbours if v[0] in unvisited]:
+            temp_dist = dist[current_node] + n[1]
+            if temp_dist < dist[n[0]]:
+                dist[n[0]] = temp_dist
+                prev[n[0]] = current_node
+
+    return dist, prev
 
 
 def coordstr(coords):
@@ -127,6 +182,12 @@ def find_reindeer(map):
     for y in range(len(map)):
         for x in range(len(map[0])):
             if map[y][x] == 'S':
+                return [y, x]
+            
+def find_end(map):
+    for y in range(len(map)):
+        for x in range(len(map[0])):
+            if map[y][x] == 'E':
                 return [y, x]
 
 
@@ -157,18 +218,28 @@ def part_1(file):
       
         map = np.array([list(r) for r in map])
         
+        print(map.shape)
         print_map(map)
 
         reindeer_pos = find_reindeer(map)
+        print(reindeer_pos)
 
         t = time.time()
 
-        paths = generate_paths(reindeer_pos, map, len(map))
+        # paths = generate_paths(reindeer_pos, map, len(map))
+
+        cost, _ = djikstra(map, reindeer_pos)
+        end = find_end(map)
+        min_cost = np.inf
+        for d in MOVE_MAP.keys():
+            c = coordstr(end) + d
+            if cost[c] < min_cost:
+                min_cost = cost[c]
 
         print(f"Time taken to generate paths: {time.time() - t}")
-        print(f"Distinct paths found: {len([n.cost for n in LevelOrderIter(paths) if n.end == True])}")
+        # print(f"Distinct paths found: {len([n.cost for n in LevelOrderIter(paths) if n.end == True])}")
 
-        return get_cheapest_path_cost(paths)
+        return min_cost
 
 
 
@@ -176,7 +247,7 @@ def part_2(file):
     pass
 
 
-# test_part_1()
+test_part_1()
 # test_part_2()
 
 print(part_1("data/day_16_input.txt"))
